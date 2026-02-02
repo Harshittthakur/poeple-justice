@@ -5,28 +5,26 @@ import os
 import base64
 from datetime import datetime
 
-# --- FIREBASE CONNECT ---
+# --- FIREBASE CONNECT (Updated for Streamlit Cloud) ---
 def init_fb():
     if not firebase_admin._apps:
-        # Aapka path logic
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        possible_files = ["key.json", "key.json.json", "key"]
-        final_path = None
-        for f in possible_files:
-            p = os.path.join(base_path, f)
-            if os.path.exists(p):
-                final_path = p
-                break
-        
-        if final_path:
-            try:
-                cred = credentials.Certificate(final_path)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://janseva-app-960e7-default-rtdb.firebaseio.com'
-                })
-            except Exception as e:
-                st.error(f"Error: {e}")
-                return False
+        try:
+            # Check karein ki kya hum Streamlit Cloud par hain
+            if "gcp_service_account" in st.secrets:
+                # Online: Secrets se data uthayega
+                creds_dict = dict(st.secrets["gcp_service_account"])
+                cred = credentials.Certificate(creds_dict)
+            else:
+                # Local: Aapke computer ki key.json use karega
+                cred = credentials.Certificate("key.json")
+            
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://janseva-app-960e7-default-rtdb.firebaseio.com'
+            })
+            return True
+        except Exception as e:
+            st.error(f"Connection Error: {e}")
+            return False
     return True
 
 def get_base64(file):
@@ -34,6 +32,7 @@ def get_base64(file):
         return base64.b64encode(file.getvalue()).decode()
     return None
 
+# App shuru ho rahi hai
 if init_fb():
     st.title("📢 Jan-Seva Portal")
     st.subheader("Shikayat Darj Karein")
